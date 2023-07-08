@@ -40,6 +40,18 @@ int ventilacionActivada = 0;
 int riegoActivado = 0;
 
 
+//Variables y constantes del sensor de luz LDR
+const long A = 1000;    //Resistencia en oscuridad en KΩ
+const int B = 15;       //Resistencia a la luz (10 Lux) en KΩ
+const int Rc = 10;      //Resistencia calibracion en KΩ
+const int LDRPin = A3;  //Pin del LDR
+int VOLTAJE;
+int ILUMINACION;
+int iluminacionActivada = 0;
+
+
+
+
 void setup() {
   // init comunicación serie a 9600 baudios (monitor serial)
   Serial.begin(9600);
@@ -50,11 +62,8 @@ void setup() {
 
 
 void loop() {
-  //Obtener tecla ingresada del keypad
-  char key = keypad.getKey();
-
-
   // Logica de activar/desactivar alarma
+  char key = keypad.getKey();
   if (key) {
     int digito = atoi(&key);
     claveIngresada[cantDigitosIngresados] = codificarClave(digito);
@@ -84,9 +93,11 @@ void loop() {
       cantDigitosIngresados = 0;
     }
   }
-
+  // Fin logica alarma
 
   Serial.print("\r\n");
+
+
   //Logica del sensor de temperatura y humedad
   TEMPERATURA = dht.readTemperature();  // Obtener valor de temperatura
   HUMEDAD = dht.readHumidity();         // Obtener valor de humedad
@@ -111,10 +122,25 @@ void loop() {
     Serial.print("Sistema de ventilacion activado.");
   } else Serial.print("Sistema de ventilacion desactivado.");
   Serial.print("\r\n");
+  // Fin logica del sensor de temperatura y humedad
 
 
+  // Logica del sensor de iluminacion LDR
+  VOLTAJE = analogRead(LDRPin);                                                // Lee entrada analógica
+  ILUMINACION = ((long)VOLTAJE * A * 10) / ((long)B * Rc * (1024 - VOLTAJE));  // Obtener valor de iluminación
+  Serial.print("Luz: ");
+  Serial.print(ILUMINACION);
+  Serial.print("\r\n");
 
+  if (ILUMINACION < 100) iluminacionActivada = 1;
+  else iluminacionActivada = 0;
 
+  if (iluminacionActivada) {
+    Serial.print("Sistema de iluminacion encendido.");
+  } else Serial.print("Sistema de iluminacion apagado.");
+  Serial.print("\r\n");
+
+  // Fin Logica del sensor de iluminacion
 
 
 
