@@ -13,18 +13,19 @@ byte colPins[COLS] = { 6, 5, 4 };       //Columnas (pines del 4 al 6)
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 // Variables para la configuración de la clave
-char claveGuardada[4] = "5023";  // Clave codificada en memoria  para la clave 7896
-int codigo[4];
-int cont = 0;
-int alarmaActivada = 0;
+char password[5] = "5023";  // password en memoria  para la key 7896
+unsigned int codigo[4];
+unsigned int cantDigitosIngresados = 0;
+unsigned int alarmaActivada = 0;
 //Variables para decodificar alarma
-int a = 2;
-int b = 5;
-int n = 7;
+unsigned int a = 2;
+unsigned int b = 5;
+unsigned int n = 7;
 
 
 
 void setup() {
+  // init comunicación serie a 9600 baudios
   Serial.begin(9600);
 }
 
@@ -34,43 +35,18 @@ void loop() {
 
   if (key) {
 
-    int numero = atoi(&key);
+    int digito = atoi(&key);
 
 
-    codigo[cont] = funcionF(numero, a, b, n);
-    Serial.print("codigo caracter:");
-    Serial.print(codigo[cont]);
-    Serial.print("\r\n");
-
-    Serial.print("clave guardada:");
-    Serial.print(claveGuardada[cont]);
-    Serial.print("\r\n");
+    codigo[cantDigitosIngresados] = codificarClave(digito);
 
 
+    cantDigitosIngresados ++;
 
+    // Al ingresar 5 caracteres se validan con el password
+    if (cantDigitosIngresados == 4) {
 
-    Serial.print("codigo caracter total:");
-    Serial.print(codigo[0]);
-    Serial.print(codigo[1]);
-    Serial.print(codigo[2]);
-    Serial.print(codigo[3]);
-
-    Serial.print("\r\n");
-
-    Serial.print("clave guardada total:");
-    Serial.print(claveGuardada[0]);
-    Serial.print(claveGuardada[1]);
-    Serial.print(claveGuardada[2]);
-    Serial.print(claveGuardada[3]);
-    Serial.print("\r\n");
-
-
-    cont = cont + 1;
-
-    // si se ingresan 5 caracteres se chequea la clave
-    if (cont == 4) {
-
-      if (codigo[0] == claveGuardada[0] & codigo[1] == claveGuardada[1] & codigo[2] == claveGuardada[2] & codigo[3] == claveGuardada[3]) {
+      if (codigo[0] == (password[0] - '0') && codigo[1] == (password[1] - '0') && codigo[2] == (password[2] - '0') && codigo[3] == (password[3] - '0')) {
         if (alarmaActivada == 1) {
           Serial.print("Alarma desactivada");
           Serial.print("\r\n");
@@ -86,21 +62,15 @@ void loop() {
         Serial.print("Ingrese la contrasena nuevamente");
         Serial.print("\r\n");
       }
-      cont = 0;
+      cantDigitosIngresados = 0;
     }
   }
 }
 
 
 // Definición de la función para decodificar alarma
-int funcionF(int x, int a, int b, int n) {
-  Serial.print("x es:");
-  Serial.print(x);
-  int result = (a * x + b) % n;
-  Serial.print("resultado es:");
-  Serial.print(result);
-  Serial.print("\r\n");
-  return result;
+int codificarClave(int digitoPlano) {
+  return (a * digitoPlano + b) % n;
 }
 
 
