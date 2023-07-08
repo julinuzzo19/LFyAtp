@@ -1,5 +1,8 @@
 #include <Keypad.h>
+#include <DHT.h>  // importar la Librerias Sensor temperatura y humedad
+#include <DHT_U.h>
 
+//Configuracion del keypad
 const byte ROWS = 4;
 const byte COLS = 3;
 char keys[ROWS][COLS] = {
@@ -11,50 +14,66 @@ char keys[ROWS][COLS] = {
 byte rowPins[ROWS] = { 12, 11, 8, 7 };  //Filas(pines del 7,8 y 12, 13)
 byte colPins[COLS] = { 6, 5, 4 };       //Columnas (pines del 4 al 6)
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+//
 
-// Variables para la configuración de la clave
-char password[5] = "5023";  // password en memoria  para la key 7896
-unsigned int codigo[4];
+// Configuración de la clave codificada
+char claveCodificada[5] = "5023";  // password en memoria  para la key 7896
+unsigned int claveIngresada[4];
 unsigned int cantDigitosIngresados = 0;
 unsigned int alarmaActivada = 0;
-//Variables para decodificar alarma
+//Variables para la función modulo
 unsigned int a = 2;
 unsigned int b = 5;
 unsigned int n = 7;
+// Definición de la función para decodificar alarma
+int codificarClave(int digitoPlano) {
+  return (a * digitoPlano + b) % n;
+}
+//
 
+//Configuración y variables del sensor de temperatura y humedad
+int SENSOR = A4;  // pin DATA del DHT a pin digital 2
+int TEMPERATURA;
+int HUMEDAD;
+DHT dht(SENSOR, DHT11);
+int ventilacionActivada = 0;
+int riegoActivado = 0;
 
 
 void setup() {
-  // init comunicación serie a 9600 baudios
+  // init comunicación serie a 9600 baudios (monitor serial)
   Serial.begin(9600);
+
+  // Inicialización del sensor de temperatura y humedad
+  dht.begin();
 }
 
 
 void loop() {
+  //Obtener tecla ingresada del keypad
   char key = keypad.getKey();
 
+
+  // Logica de activar/desactivar alarma
   if (key) {
-
     int digito = atoi(&key);
+    claveIngresada[cantDigitosIngresados] = codificarClave(digito);
+    cantDigitosIngresados++;
 
-
-    codigo[cantDigitosIngresados] = codificarClave(digito);
-
-
-    cantDigitosIngresados ++;
-
-    // Al ingresar 5 caracteres se validan con el password
+    // Al ingresar 4 caracteres se validan con la clave codificada
     if (cantDigitosIngresados == 4) {
 
-      if (codigo[0] == (password[0] - '0') && codigo[1] == (password[1] - '0') && codigo[2] == (password[2] - '0') && codigo[3] == (password[3] - '0')) {
+      if (claveIngresada[0] == (claveCodificada[0] - '0') && claveIngresada[1] == (claveCodificada[1] - '0') && claveIngresada[2] == (claveCodificada[2] - '0') && claveIngresada[3] == (claveCodificada[3] - '0')) {
         if (alarmaActivada == 1) {
           Serial.print("Alarma desactivada");
           Serial.print("\r\n");
+
 
           alarmaActivada = 0;
         } else {
           Serial.print("Alarma activada");
           Serial.print("\r\n");
+
 
           alarmaActivada = 1;
         }
@@ -65,13 +84,49 @@ void loop() {
       cantDigitosIngresados = 0;
     }
   }
+
+
+  Serial.print("\r\n");
+  //Logica del sensor de temperatura y humedad
+  TEMPERATURA = dht.readTemperature();  // Obtener valor de temperatura
+  HUMEDAD = dht.readHumidity();         // Obtener valor de humedad
+  Serial.print("Temperatura: ");
+  Serial.print(TEMPERATURA);
+  Serial.print(" - Humedad: ");
+  Serial.println(HUMEDAD);
+
+  if (HUMEDAD <= 50) riegoActivado = 1;
+  else if (HUMEDAD >= 75) riegoActivado = 0;
+
+  if (TEMPERATURA >= 25) ventilacionActivada = 1;
+  else ventilacionActivada = 0;
+
+  if (riegoActivado) {
+    Serial.print("Sistema de riego activado.");
+  } else Serial.print("Sistema de riego desactivado.");
+  Serial.print("\r\n");
+
+
+  if (ventilacionActivada) {
+    Serial.print("Sistema de ventilacion activado.");
+  } else Serial.print("Sistema de ventilacion desactivado.");
+  Serial.print("\r\n");
+
+
+
+
+
+
+
+
+
+
+
+
+  delay(1500);
 }
 
 
-// Definición de la función para decodificar alarma
-int codificarClave(int digitoPlano) {
-  return (a * digitoPlano + b) % n;
-}
 
 
 
@@ -79,28 +134,6 @@ int codificarClave(int digitoPlano) {
 
 
 
-
-
-/*
- if (key) {
-    if (key != '#') {
-      // Construir la clave ingresada dígito a dígito
-      claveIngresada = claveIngresada * 10 + (key - '0');
-    } else {
-      // Verificar la clave ingresada utilizando la función f(x)
-      if (funcionF(claveIngresada, a, b, n) == claveGuardada) {
-        // Clave correcta, activar el sistema de alarma
-        Serial.println("Clave correcta. Alarma activada.");
-      } else {
-        // Clave incorrecta, mostrar mensaje de error
-        Serial.println("Clave incorrecta. Alarma desactivada.");
-      }
-      
-      // Reiniciar la variable claveIngresada
-      claveIngresada = 0;
-    }
-  }
-*/
 
 
 
