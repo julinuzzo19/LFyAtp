@@ -45,7 +45,6 @@ const int Rc = 10;      //Resistencia calibracion en KΩ
 const int LDRPin = A3;  //Pin del LDR
 int VOLTAJE;
 int ILUMINACION;
-int iluminacionActivada = 0;
 int pinLedR = 13;
 
 //----------------buzzer------------------------------//
@@ -68,6 +67,8 @@ void loop() {
   // -----------------------------alarma--------------------------------------//
   key = keypad.getKey();
   activarAlarma(key);
+  //detectorMovimiento();
+  //activarSirena();  --> falta logica de movimiento
   // ----------------------------Fin alarma----------------------------
 
   Serial.print("\r\n");
@@ -136,6 +137,18 @@ void activarAlarma(char key) {
   }
 }
 
+void activarSirena(){
+  //tone(pinaltavoz,frecuencia) --> activacion altavoz
+  //noTone(pinaltavoz) --> desactivacion altavoz
+  /* crear detectoMoviento
+  if(alarmaActivada && detectoMoviento){
+    tone(pinaltavoz,frecuencia);
+  }
+  else{
+    noTone(pinaltavoz);
+  }
+  */
+}
 void activarCalefaccionVentilacion(int TEMPERATURA,int HUMEDAD){
   Serial.print("Temperatura: ");
   Serial.print(TEMPERATURA);
