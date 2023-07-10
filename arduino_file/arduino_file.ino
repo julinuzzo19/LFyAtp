@@ -73,7 +73,10 @@ void setup() {
   pinMode(pinMovimiento, INPUT);
 }
 
+int temporizador = 3;
 
+unsigned long tiempoInicio;  // Variable para almacenar el tiempo de inicio
+const unsigned long tiempoEspera = 1000;
 
 
 void loop() {
@@ -81,46 +84,54 @@ void loop() {
   // -----------------------------alarma--------------------------------------//
   key = keypad.getKey();
   activarAlarma(key);
-  //detectorMovimiento();
-  //activarSirena();  --> falta logica de movimiento
-  Serial.print("\r\n");
+
 
 
 
   detectarMovimiento();
 
 
-  if (alarmaActivada && movimientoDetectado == 1) {
-    activarSirena();
+  unsigned long tiempoActual = millis();  // Obtener el tiempo actual en milisegundos
+
+  // Si el temporizador ha expirado, realizar una acción
+  if (tiempoActual - tiempoInicio >= tiempoEspera) {
+    // Realizar la acción correspondiente
+    if (alarmaActivada && movimientoDetectado == 1) {
+      activarSirena();
+    }
+
+    // ----------------------------Fin alarma----------------------------
+    else {
+
+
+
+      //--------------------------------Activacion de calefaccion, ventilacion y sirena-----------------------------//
+      TEMPERATURA = dht.readTemperature();  // Obtener valor de temperatura
+      HUMEDAD = dht.readHumidity();         // Obtener valor de humedad
+      //---------------------------falta agregar el movimiento deberia pasarse a la funcion y condicionarlo segun el TP----------------------------------//
+      activarCalefaccionVentilacion(TEMPERATURA, HUMEDAD);
+      //---------------------------------------Activacion de calefaccion, ventilacion y sirena-----------------------------------------------//
+
+
+      // -----------------------activacion de led----------------//
+      VOLTAJE = analogRead(LDRPin);                                                            // Lee entrada analógica
+      ILUMINACION = ((long)VOLTAJE * Roscuridad * 10) / ((long)Rluz * Rc * (1024 - VOLTAJE));  // Obtener valor de iluminación
+
+      activarLed(ILUMINACION);
+
+      // ---------------------------------activacion led----------------------------//
+
+
+
+
+
+      //delay(1500);
+    }
+
+    tiempoInicio = tiempoActual;  // Reiniciar el temporizador
+    Serial.print("\r\n");
   }
 
-  // ----------------------------Fin alarma----------------------------
-  else {
-
-
-
-    //--------------------------------Activacion de calefaccion, ventilacion y sirena-----------------------------//
-    TEMPERATURA = dht.readTemperature();  // Obtener valor de temperatura
-    HUMEDAD = dht.readHumidity();         // Obtener valor de humedad
-    //---------------------------falta agregar el movimiento deberia pasarse a la funcion y condicionarlo segun el TP----------------------------------//
-    activarCalefaccionVentilacion(TEMPERATURA, HUMEDAD);
-    //---------------------------------------Activacion de calefaccion, ventilacion y sirena-----------------------------------------------//
-
-
-    // -----------------------activacion de led----------------//
-    VOLTAJE = analogRead(LDRPin);                                                            // Lee entrada analógica
-    ILUMINACION = ((long)VOLTAJE * Roscuridad * 10) / ((long)Rluz * Rc * (1024 - VOLTAJE));  // Obtener valor de iluminación
-
-    activarLed(ILUMINACION);
-
-    // ---------------------------------activacion led----------------------------//
-
-
-
-
-
-    delay(1500);
-  }
 }
 
 // Definicion de funciones
@@ -184,8 +195,7 @@ void desactivarSirena() {
 void detectarMovimiento() {
 
   int value = digitalRead(pinMovimiento);  // lee valor sensor movimiento
-  Serial.print("value: ");                 // 1 movimiento detectado, 0 movimiento no detectado
-  Serial.print(value);
+
 
   if (value == 1) movimientoDetectado = 1;
   else movimientoDetectado = 0;
