@@ -20,7 +20,7 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 unsigned int claveCodificada[4] = { 5, 0, 2, 3 };  // password en memoria  para la key 7896
 unsigned int claveIngresada[4];
 unsigned int cantDigitosIngresados = 0;
-unsigned int alarmaActivada = 1;
+unsigned int alarmaActivada = 0;
 //------------------Variables para la función modulo-----------------------------//
 unsigned int a = 2;
 unsigned int b = 5;
@@ -56,6 +56,8 @@ int frecuencia = 220;  // frecuencia correspondiente a la nota La
 
 //--------------------Configuración sensor de movimiento------------------------//
 int pinMovimiento = A5;
+int movimientoDetectado = 0;
+
 
 
 
@@ -76,41 +78,49 @@ void setup() {
 
 void loop() {
 
-  if (alarmaActivada)
-    detectarMovimiento();
-
-
   // -----------------------------alarma--------------------------------------//
   key = keypad.getKey();
   activarAlarma(key);
   //detectorMovimiento();
   //activarSirena();  --> falta logica de movimiento
-  // ----------------------------Fin alarma----------------------------
-
   Serial.print("\r\n");
 
 
-  //--------------------------------Activacion de calefaccion, ventilacion y sirena-----------------------------//
-  TEMPERATURA = dht.readTemperature();  // Obtener valor de temperatura
-  HUMEDAD = dht.readHumidity();         // Obtener valor de humedad
-  //---------------------------falta agregar el movimiento deberia pasarse a la funcion y condicionarlo segun el TP----------------------------------//
-  activarCalefaccionVentilacion(TEMPERATURA, HUMEDAD);
-  //---------------------------------------Activacion de calefaccion, ventilacion y sirena-----------------------------------------------//
+
+  detectarMovimiento();
 
 
-  // -----------------------activacion de led----------------//
-  VOLTAJE = analogRead(LDRPin);                                                            // Lee entrada analógica
-  ILUMINACION = ((long)VOLTAJE * Roscuridad * 10) / ((long)Rluz * Rc * (1024 - VOLTAJE));  // Obtener valor de iluminación
+  if (alarmaActivada && movimientoDetectado == 1) {
+    activarSirena();
+  }
 
-  activarLed(ILUMINACION);
-
-  // ---------------------------------activacion led----------------------------//
+  // ----------------------------Fin alarma----------------------------
+  else {
 
 
 
+    //--------------------------------Activacion de calefaccion, ventilacion y sirena-----------------------------//
+    TEMPERATURA = dht.readTemperature();  // Obtener valor de temperatura
+    HUMEDAD = dht.readHumidity();         // Obtener valor de humedad
+    //---------------------------falta agregar el movimiento deberia pasarse a la funcion y condicionarlo segun el TP----------------------------------//
+    activarCalefaccionVentilacion(TEMPERATURA, HUMEDAD);
+    //---------------------------------------Activacion de calefaccion, ventilacion y sirena-----------------------------------------------//
 
 
-  delay(1500);
+    // -----------------------activacion de led----------------//
+    VOLTAJE = analogRead(LDRPin);                                                            // Lee entrada analógica
+    ILUMINACION = ((long)VOLTAJE * Roscuridad * 10) / ((long)Rluz * Rc * (1024 - VOLTAJE));  // Obtener valor de iluminación
+
+    activarLed(ILUMINACION);
+
+    // ---------------------------------activacion led----------------------------//
+
+
+
+
+
+    delay(1500);
+  }
 }
 
 // Definicion de funciones
@@ -132,6 +142,8 @@ void activarAlarma(char key) {
         if (alarmaActivada == 1) {
           Serial.print("Alarma desactivada");
           Serial.print("\r\n");
+          desactivarSirena();
+
 
 
           alarmaActivada = 0;
@@ -152,6 +164,7 @@ void activarAlarma(char key) {
 }
 
 void activarSirena() {
+  tone(pinaltavoz, frecuencia);
   //tone(pinaltavoz,frecuencia) --> activacion altavoz
   //noTone(pinaltavoz) --> desactivacion altavoz
   /* crear detectoMoviento
@@ -163,13 +176,19 @@ void activarSirena() {
   }
   */
 }
+void desactivarSirena() {
+  noTone(pinaltavoz);
+}
 
 
 void detectarMovimiento() {
 
   int value = digitalRead(pinMovimiento);  // lee valor sensor movimiento
-  Serial.print("value: ");
+  Serial.print("value: ");                 // 1 movimiento detectado, 0 movimiento no detectado
   Serial.print(value);
+
+  if (value == 1) movimientoDetectado = 1;
+  else movimientoDetectado = 0;
 }
 
 
@@ -180,27 +199,26 @@ void activarCalefaccionVentilacion(int TEMPERATURA, int HUMEDAD) {
   Serial.print(" - Humedad: ");
   Serial.println(HUMEDAD);
 
-
   //tone(pinaltavoz,frecuencia) --> activacion altavoz
   //noTone(pinaltavoz) --> desactivacion altavoz
   if (TEMPERATURA > 50) {
-    tone(pinaltavoz, frecuencia);
+    activarSirena();
     ventilacionActivada = 0;
     calefaccionActivada = 0;
-  } else if (TEMPERATURA > 25 && HUMEDAD < 80) {
-    noTone(pinaltavoz);
+  } else if (TEMPERATURA > 25 && HUMEDAD < 80 && movimientoDetectado) {
+    desactivarSirena();
     ventilacionActivada = 1;
     calefaccionActivada = 0;
-  } else if (TEMPERATURA >= 23 && HUMEDAD >= 80) {
-    noTone(pinaltavoz);
+  } else if (TEMPERATURA >= 23 && HUMEDAD >= 80 && movimientoDetectado) {
+    desactivarSirena();
     ventilacionActivada = 1;
     calefaccionActivada = 0;
   } else if (TEMPERATURA >= 18) {
-    noTone(pinaltavoz);
+    desactivarSirena();
     ventilacionActivada = 0;
     calefaccionActivada = 0;
-  } else if (TEMPERATURA < 18) {
-    noTone(pinaltavoz);
+  } else if (TEMPERATURA < 18 && movimientoDetectado) {
+    desactivarSirena();
     ventilacionActivada = 0;
     calefaccionActivada = 1;
   }
