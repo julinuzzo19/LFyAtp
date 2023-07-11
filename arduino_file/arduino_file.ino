@@ -60,7 +60,6 @@ int movimientoDetectado = 0;
 
 
 //-------------------Configuracion temporizador-----------------------------------//
-int temporizador = 3;
 unsigned long tiempoInicio; 
 const unsigned long tiempoEspera = 1000;
 
